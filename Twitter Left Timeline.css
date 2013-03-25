@@ -1,0 +1,11 @@
+@media screen {
+    .content-main, .profile-header {
+        float: left !important;
+    }
+    .dashboard {
+        float: right !important;
+    }
+    #suggested-users {
+        clear: none !important;
+    }
+}

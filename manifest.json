@@ -1,0 +1,26 @@
+{
+    "name": "TwiShell",
+    "version": "1.0",
+    "manifest_version": 2,
+    "description": "Enhance Twitter Web with lots of features.",
+    "content_scripts": [
+        {
+            "matches": [
+                "*://twitter.com/*"
+            ],
+            "css": [
+                "Twitter Left Timeline.css"
+            ],
+            "js": [
+                "Twitter Tweet Hotkey.user.js",
+                "Twitter Traditional RT Style.user.js",
+                "Twitter Expand URL.js",
+                "Instagram preview in Twitter.js"
+            ],
+            "run_at": "document_end"
+        }
+    ],
+    "permissions": [
+        "*://twitter.com/*"
+    ]
+}
