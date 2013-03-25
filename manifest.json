@@ -4,7 +4,8 @@
     "manifest_version": 2,
     "description": "Enhance Twitter Web with lots of features.",
     "icons": {
-        "300": "twitter-bird-light-bgs.png"
+        "16": "favicon.ico",
+        "48": "twitter-bird-light-bgs.png"
     },
     "content_scripts": [
         {
