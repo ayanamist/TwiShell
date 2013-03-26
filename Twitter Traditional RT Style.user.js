@@ -10,123 +10,60 @@
 // @run-at document-end
 // @version 1.6
 // ==/UserScript==
-if (typeof unsafeWindow === "undefined" || unsafeWindow === window) {
-    var div = document.createElement("div");
-    div.setAttribute("onclick", "return window;");
-    unsafeWindow = div.onclick();
-    div = null;
-}
-(function (document, unsafeWindow) {
+(function (document) {
     var ELEMENT_NODE = 1,
         TEXT_NODE = 3;
-    var initjQuery = function() {
-        if (typeof unsafeWindow.jQuery === "undefined") {
-            setTimeout(initjQuery, 100);
-        }
-        else {
-            onReady(unsafeWindow.jQuery);
-        }
+
+    var camelize = function (str) {
+        return str.replace(/-+(.)?/g, function (match, chr) {
+            return chr ? chr.toUpperCase() : ''
+        })
+    };
+
+    function dasherize(str) {
+        return str.replace(/::/g, '/')
+            .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+            .replace(/([a-z\d])([A-Z])/g, '$1_$2')
+            .replace(/_/g, '-')
+            .toLowerCase()
     }
 
-    var onReady = function($) {
-        var jDocument = $(document),
-            jRetweetDialog = $("#retweet-tweet-dialog"),
-            jGlobalDialog = $("#global-tweet-dialog");
-
-        var getOriginalTweetText = function() {
-            var originalTweetText,
-                tweetTextElement,
-                tweetTextElementText,
-                jTweetTextElement,
-                tweetTextElements,
-                tweetTextElementsLength,
-                i;
-            tweetTextElements = jRetweetDialog.find("div.content p.js-tweet-text").contents();
-            tweetTextElementsLength = tweetTextElements.length;
-            originalTweetText = "";
-            for (i = 0; i < tweetTextElementsLength; i += 1) {
-                tweetTextElement = tweetTextElements[i];
-                tweetTextElementText = "";
-                if (tweetTextElement.nodeType === TEXT_NODE) {
-                    tweetTextElementText = tweetTextElement.textContent;
+    var jOn = function (node, eventName, selector, listener) {
+        node.addEventListener(eventName, function (event) {
+            var matched = true,
+                callback;
+            if (typeof listener !== "undefined") {
+                var matchesSelector = event.target.webkitMatchesSelector || event.target.mozMatchesSelector ||
+                    event.target.oMatchesSelector || event.target.matchesSelector;
+                if (typeof matchesSelector === "undefined") {
+                    throw DOMException;
                 }
-                else if (tweetTextElement.nodeType === ELEMENT_NODE) {
-                    jTweetTextElement = $(tweetTextElement);
-                    tweetTextElementText = jTweetTextElement.find(":not(.tco-ellipsis)").text();
-                    if (!tweetTextElementText) {
-                        tweetTextElementText = jTweetTextElement.text();
-                    }
-                }
-                originalTweetText += tweetTextElementText;
-            }
-            return "RT " + jRetweetDialog.find("div.content div.stream-item-header span.username").
-                text().trim() + ": " + originalTweetText.trim().replace(/\s{2,}/g, " ");
-        }
-
-        var clickElement = function(el) {
-            var evt = document.createEvent("Event");
-            evt.initEvent('click', true, true);
-            el.dispatchEvent(evt);
-        }
-
-        var hideRetweetDialog = function() {
-            clickElement(document.querySelector("#retweet-tweet-dialog button.modal-close"));
-        }
-
-        var showGlobalTweetDialog = function() {
-            jGlobalDialog.find(".draggable").attr("style", jRetweetDialog.find(".draggable").attr("style"));
-            clickElement(document.querySelector("button#global-new-tweet-button"));
-            jGlobalDialog.find(".modal-title").html(jRetweetDialog.find(".modal-title").text());
-        }
-
-        var whenOnRetweetDialog = function() {
-            hideRetweetDialog();
-            showGlobalTweetDialog();
-            fillInTweetBox(getOriginalTweetText());
-        }
-
-        var waitForRetweetDialog = function() {
-            if (jRetweetDialog.filter(":visible").length) {
-                whenOnRetweetDialog();
-                jRetweetDialog.css("display", "none");
-                jRetweetDialog.css("visibility", "");
+                matched = matchesSelector(selector);
+                callback = listener;
             }
             else {
-                setTimeout(waitForRetweetDialog, 100);
+                callback = selector;
             }
+            if (matched) {
+                callback(event);
+            }
+        }, false);
+    };
+
+    var jCss = function (node, property, value) {
+        if (typeof value === "undefined") {
+            return (node.style[camelize(property)] || getComputedStyle(node, '').getPropertyValue(property));
         }
+        var css = "";
+        if (!value && value !== 0)
+            node.style.removeProperty(dasherize(property));
+        else
+            css = dasherize(property) + ":" + value;
 
-        var fillInTweetBox = function(text) {
-            var editableDiv = jGlobalDialog.find("div.tweet-box")[0],
-                range = document.createRange(),
-                selection = window.getSelection();
-            editableDiv.innerHTML = text;
-            editableDiv.focus();
-            range.selectNodeContents(editableDiv);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
+        return node.style.cssText += ';' + css;
+    };
 
-        jRetweetDialog.find("button.cancel-action").addClass("rt-action").removeClass("cancel-action").html("RT");
-        jDocument.on("click", "#retweet-tweet-dialog .original-tweet", function (event) {
-            if (event.target.tagName.toLowerCase() === "div") {
-                whenOnRetweetDialog();
-            }
-        });
-        jDocument.on("click", "#retweet-tweet-dialog button.rt-action", whenOnRetweetDialog);
-        jDocument.on("mouseup", ".tweet .cannot-retweet span.retweet", function (event) {
-            if (event.button == 2) { // Ignore right-clicks
-                return;
-            }
-            $(event.target).on("click", function () {
-                jRetweetDialog.css("visibility", "hidden");
-                waitForRetweetDialog();
-            })
-        });
-    }
-
-    var addCSS = function(css) {
+    var addCSS = function (css) {
         if (typeof GM_addStyle != "undefined") {
             GM_addStyle(css);
         } else if (typeof PRO_addStyle != "undefined") {
@@ -143,8 +80,110 @@ if (typeof unsafeWindow === "undefined" || unsafeWindow === window) {
                 node = null;
             }
         }
-    }
+    };
+
+    var onReady = function () {
+        var retweetDialog = document.getElementById("retweet-tweet-dialog"),
+            globalDialog = document.getElementById("global-tweet-dialog");
+
+        var getOriginalTweetText = function () {
+            var originalTweetText,
+                tweetTextElement,
+                tweetTextElementText,
+                tweetTextElements,
+                tweetTextElementsLength,
+                i;
+            tweetTextElements = retweetDialog.querySelector("div.content p.js-tweet-text").childNodes;
+            tweetTextElementsLength = tweetTextElements.length;
+            originalTweetText = "";
+            for (i = 0; i < tweetTextElementsLength; i += 1) {
+                tweetTextElement = tweetTextElements[i];
+                tweetTextElementText = "";
+                if (tweetTextElement.nodeType === TEXT_NODE) {
+                    tweetTextElementText = tweetTextElement.textContent;
+                }
+                else if (tweetTextElement.nodeType === ELEMENT_NODE) {
+                    tweetTextElementText = Array.prototype.join.call(
+                        Array.prototype.map.call(
+                            tweetTextElement.querySelectorAll(":not(.tco-ellipsis)"), function (el) {
+                                return el.textContent
+                            }), "");
+                    if (!tweetTextElementText) {
+                        tweetTextElementText = tweetTextElement.textContent;
+                    }
+                }
+                originalTweetText += tweetTextElementText;
+            }
+            return "RT " + retweetDialog.querySelector("div.content div.stream-item-header span.username").
+                textContent.trim() + ": " + originalTweetText.trim().replace(/\s{2,}/g, " ");
+        };
+
+        var clickElement = function (el) {
+            var evt = document.createEvent("Event");
+            evt.initEvent('click', true, true);
+            el.dispatchEvent(evt);
+        };
+
+        var hideRetweetDialog = function () {
+            clickElement(document.querySelector("#retweet-tweet-dialog button.modal-close"));
+        };
+
+        var showGlobalTweetDialog = function () {
+            globalDialog.querySelector(".draggable").setAttribute("style", retweetDialog.querySelector(".draggable").getAttribute("style"));
+            clickElement(document.querySelector("button#global-new-tweet-button"));
+            globalDialog.querySelector(".modal-title").innerHTML = retweetDialog.querySelector(".modal-title").textContent;
+        };
+
+        var whenOnRetweetDialog = function () {
+            hideRetweetDialog();
+            showGlobalTweetDialog();
+            fillInTweetBox(getOriginalTweetText());
+        };
+
+        var waitForRetweetDialog = function () {
+            if ((retweetDialog.offsetWidth === 0 && retweetDialog.offsetHeight === 0 ) ||
+                (((retweetDialog.style && retweetDialog.style.display) || jCss(retweetDialog, "display")) === "none")) {
+                setTimeout(waitForRetweetDialog, 100);
+            }
+            else {
+                whenOnRetweetDialog();
+                jCss(retweetDialog, "display", "none");
+                jCss(retweetDialog, "visibility", "");
+            }
+        };
+
+        var fillInTweetBox = function (text) {
+            var editableDiv = globalDialog.querySelector("div.tweet-box"),
+                range = document.createRange(),
+                selection = window.getSelection();
+            editableDiv.innerHTML = text;
+            editableDiv.focus();
+            range.selectNodeContents(editableDiv);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        };
+
+        var btnAction = retweetDialog.querySelector("button.cancel-action");
+        btnAction.className.replace(/\bcancel-action\b/g, "rt-action");
+        btnAction.innerHTML = "RT";
+        jOn(document, "click", "#retweet-tweet-dialog .original-tweet", function (event) {
+            if (event.target.tagName.toLowerCase() === "div") {
+                whenOnRetweetDialog();
+            }
+        });
+        jOn(document, "click", "#retweet-tweet-dialog button.rt-action", whenOnRetweetDialog);
+        jOn(document, "mouseup", ".tweet .cannot-retweet span.retweet", function (event) {
+            if (event.button == 2) { // Ignore right-clicks
+                return;
+            }
+            jOn(event.target, "click", function () {
+                jCss(retweetDialog, "visibility", "hidden");
+                waitForRetweetDialog();
+            })
+        });
+    };
 
     addCSS(".tweet .cannot-retweet{display: inline !important;}");
-    initjQuery();
-})(document, unsafeWindow);
+    document.addEventListener("DOMContentLoaded", onReady, false);
+})(document);
