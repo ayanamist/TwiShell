@@ -10,40 +10,40 @@
 // @version 1.3
 // ==/UserScript==
 (function (document) {
-    var keyEnter = 13,
-        keyShift = 16,
-        keyCtrl = 17,
+    var KEY_ENTER = 13,
+        KEY_SHIFT = 16,
+        KEY_CTRL = 17,
         isCtrlPressed = false,
         isShiftPressed = false;
 
     var hasClass = function(el, className) {
         return new RegExp("\\b" + className + "\\b", "g").test(el.className);
-    }
+    };
 
     var onKeyDown = function(event) {
-        if (event.which === keyCtrl) {
+        if (event.which === KEY_CTRL) {
             isCtrlPressed = true;
         }
-        else if (event.which === keyShift) {
+        else if (event.which === KEY_SHIFT) {
             isShiftPressed = true;
         }
-        else if (event.which === keyEnter && (isShiftPressed || isCtrlPressed) &&
+        else if (event.which === KEY_ENTER && (isShiftPressed || isCtrlPressed) &&
             hasClass(event.target, "tweet-box")) {
             var clickEvent = document.createEvent("MouseEvents");
             clickEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
             event.target.parentNode.parentNode.querySelector("button.tweet-action").dispatchEvent(clickEvent);
             event.preventDefault();
         }
-    }
+    };
 
     var onKeyUp = function(event) {
-        if (event.which === keyCtrl) {
+        if (event.which === KEY_CTRL) {
             isCtrlPressed = false;
         }
-        else if (event.which === keyShift) {
+        else if (event.which === KEY_SHIFT) {
             isShiftPressed = false;
         }
-    }
+    };
 
     document.addEventListener("keydown", onKeyDown, false);
     document.addEventListener("keyup", onKeyUp, false);
