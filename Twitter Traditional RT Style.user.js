@@ -31,14 +31,15 @@
     var jOn = function (node, eventName, selector, listener) {
         node.addEventListener(eventName, function (event) {
             var matched = true,
+                target = event.target,
                 callback;
             if (typeof listener !== "undefined") {
-                var matchesSelector = event.target.webkitMatchesSelector || event.target.mozMatchesSelector ||
-                    event.target.oMatchesSelector || event.target.matchesSelector;
+                var matchesSelector = target.webkitMatchesSelector || target.mozMatchesSelector ||
+                    target.oMatchesSelector || target.matchesSelector;
                 if (typeof matchesSelector === "undefined") {
                     throw DOMException;
                 }
-                matched = matchesSelector(selector);
+                matched = matchesSelector.call(target, selector);
                 callback = listener;
             }
             else {
@@ -165,7 +166,7 @@
         };
 
         var btnAction = retweetDialog.querySelector("button.cancel-action");
-        btnAction.className.replace(/\bcancel-action\b/g, "rt-action");
+        btnAction.className = btnAction.className.replace(/\bcancel-action\b/g, "rt-action");
         btnAction.innerHTML = "RT";
         jOn(document, "click", "#retweet-tweet-dialog .original-tweet", function (event) {
             if (event.target.tagName.toLowerCase() === "div") {
@@ -185,5 +186,10 @@
     };
 
     addCSS(".tweet .cannot-retweet{display: inline !important;}");
-    document.addEventListener("DOMContentLoaded", onReady, false);
+    if (/complete|loaded|interactive/.test(document.readyState)) {
+        onReady();
+    }
+    else {
+        document.addEventListener("DOMContentLoaded", onReady, false);
+    }
 })(document);
