@@ -87,7 +87,7 @@
     }
 
     var onReady = function () {
-        addStyle(".tweet .cannot-retweet{display: inline !important;}");
+        addStyle(".cannot-retweet{display: inline !important;}");
 
         var retweetDialog = document.getElementById("retweet-tweet-dialog"),
             globalDialog = document.getElementById("global-tweet-dialog");
@@ -147,13 +147,14 @@
         };
 
         var isRetweetDialogShow = function() {
-            return jCss(retweetDialog, "display") === "block" && jCss(retweetDialog, "opacity") === "";
+            // I don't know why but when no "opacity" style, its value is "1".
+            return jCss(retweetDialog, "display") === "block" && +jCss(retweetDialog, "opacity") <= 1;
         };
 
         var waitForRetweetDialog = function (cb) {
             if (typeof MutationObserver !== "undefined") {
                 var observer = new MutationObserver(function (mutations) {
-                    Array.prototype.forEach(mutations, function (mutation) {
+                    Array.prototype.forEach.call(mutations, function (mutation) {
                         if (mutation.attributeName === "style" && isRetweetDialogShow()) {
                             observer.disconnect();
                             cb();
@@ -195,7 +196,7 @@
             }
         });
         jOn(retweetDialog, "click", "button.rt-action", onRetweetDialogShow);
-        jOn(document, "mouseup", ".tweet .cannot-retweet span.retweet", function (event) {
+        jOn(document, "mouseup", ".cannot-retweet b", function (event) {
             if (event.button == 2) { // Ignore right-clicks
                 return;
             }
