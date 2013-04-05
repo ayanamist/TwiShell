@@ -8,7 +8,7 @@
 // @match https://twitter.com/*
 // @grant unsafeWindow
 // @run-at document-end
-// @version 1.7
+// @version 1.8
 // ==/UserScript==
 (function (window) {
     var ELEMENT_NODE = 1,
