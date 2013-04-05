@@ -13,9 +13,9 @@
     var ELEMENT_NODE = 1,
         TEXT_NODE = 3;
 
-    var document = window.document;
-
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    var document = window.document,
+        Array = window.Array,
+        MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 
     var camelize = function (str) {
         return str.replace(/-+(.)?/g, function (match, chr) {
