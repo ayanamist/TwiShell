@@ -10,9 +10,13 @@
 // @run-at document-end
 // @version 1.7
 // ==/UserScript==
-(function (document) {
+(function (window) {
     var ELEMENT_NODE = 1,
         TEXT_NODE = 3;
+
+    var document = window.document;
+
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 
     var camelize = function (str) {
         return str.replace(/-+(.)?/g, function (match, chr) {
@@ -136,21 +140,35 @@
             globalDialog.querySelector(".modal-title").innerHTML = retweetDialog.querySelector(".modal-title").textContent;
         };
 
-        var whenOnRetweetDialog = function () {
+        var onRetweetDialogShow = function () {
             hideRetweetDialog();
             showGlobalTweetDialog();
             fillInTweetBox(getOriginalTweetText());
         };
 
-        var waitForRetweetDialog = function () {
-            if ((retweetDialog.offsetWidth === 0 && retweetDialog.offsetHeight === 0 ) ||
-                (((retweetDialog.style && retweetDialog.style.display) || jCss(retweetDialog, "display")) === "none")) {
-                setTimeout(waitForRetweetDialog, 100);
+        var isRetweetDialogShow = function() {
+            return jCss(retweetDialog, "display") === "block" && jCss(retweetDialog, "opacity") === "";
+        };
+
+        var waitForRetweetDialog = function (cb) {
+            if (typeof MutationObserver !== "undefined") {
+                var observer = new MutationObserver(function (mutations) {
+                    Array.prototype.forEach(mutations, function (mutation) {
+                        if (mutation.attributeName === "style" && isRetweetDialogShow()) {
+                            observer.disconnect();
+                            cb();
+                        }
+                    });
+                });
+                observer.observe(retweetDialog, { attributes: true });
             }
             else {
-                whenOnRetweetDialog();
-                jCss(retweetDialog, "display", "none");
-                jCss(retweetDialog, "visibility", "");
+                var listener = retweetDialog.addEventListener("DOMAttrModified", function (event) {
+                    if (event.attrName === "style" && isRetweetDialogShow()) {
+                        retweetDialog.removeEventListener("DOMAttrModified", listener, false);
+                        cb();
+                    }
+                }, false);
             }
         };
 
@@ -173,17 +191,21 @@
         btnAction.innerHTML = "RT";
         jOn(retweetDialog, "click", ".original-tweet", function (event) {
             if (event.target.tagName === "DIV") {
-                whenOnRetweetDialog();
+                onRetweetDialogShow();
             }
         });
-        jOn(retweetDialog, "click", "button.rt-action", whenOnRetweetDialog);
+        jOn(retweetDialog, "click", "button.rt-action", onRetweetDialogShow);
         jOn(document, "mouseup", ".tweet .cannot-retweet span.retweet", function (event) {
             if (event.button == 2) { // Ignore right-clicks
                 return;
             }
             jOn(event.target, "click", function () {
                 jCss(retweetDialog, "visibility", "hidden");
-                waitForRetweetDialog();
+                waitForRetweetDialog(function () {
+                    onRetweetDialogShow();
+                    jCss(retweetDialog, "display", "none");
+                    jCss(retweetDialog, "visibility", "");
+                });
             })
         });
     };
@@ -194,4 +216,4 @@
     else {
         document.addEventListener("DOMContentLoaded", onReady, false);
     }
-})(document);
+})(window);
