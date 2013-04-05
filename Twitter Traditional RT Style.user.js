@@ -6,7 +6,6 @@
 // @include https://twitter.com/*
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @grant unsafeWindow
 // @run-at document-end
 // @version 1.8
 // ==/UserScript==
