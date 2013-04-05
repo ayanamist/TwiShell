@@ -67,11 +67,11 @@
         return node.style.cssText += ';' + css;
     };
 
-    if (typeof addStyle != "undefined") {
+    if (typeof addStyle === "undefined") {
         var addStyle = function (css) {
-            if (typeof GM_addStyle != "undefined") {
+            if (typeof GM_addStyle !== "undefined") {
                 GM_addStyle(css);
-            } else if (typeof PRO_addStyle != "undefined") {
+            } else if (typeof PRO_addStyle !== "undefined") {
                 PRO_addStyle(css);
             } else {
                 var heads = document.getElementsByTagName("head");
