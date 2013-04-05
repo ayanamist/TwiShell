@@ -1,11 +1,11 @@
 {
     "name": "TwiShell",
-    "version": "1.1",
+    "version": "1.2",
     "manifest_version": 2,
     "description": "Enhance Twitter Web with lots of features.",
     "icons": {
-        "16": "favicon.ico",
-        "48": "twitter-bird-light-bgs.png"
+        "16": "images/16.ico",
+        "48": "images/48.png"
     },
     "content_scripts": [
         {
