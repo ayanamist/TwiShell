@@ -1,6 +1,6 @@
 {
     "name": "TwiShell",
-    "version": "1.3",
+    "version": "1.4",
     "manifest_version": 2,
     "description": "Enhance Twitter Web with lots of features.",
     "icons": {
@@ -16,9 +16,8 @@
                 "Twitter Left Timeline.css"
             ],
             "js": [
-                "Twitter Tweet Hotkey.user.js",
-                "Twitter Traditional RT Style.user.js",
-                "Twitter Expand URL.js",
+                "jquery-2.0.0.min.js",
+                "TwiShell.user.js",
                 "Instagram preview in Twitter.js"
             ],
             "run_at": "document_end"
