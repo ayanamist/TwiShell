@@ -17,10 +17,9 @@
             ],
             "js": [
                 "jquery-2.0.0.min.js",
-                "TwiShell.user.js",
-                "Instagram preview in Twitter.js"
+                "TwiShell.user.js"
             ],
-            "run_at": "document_end"
+            "run_at": "document_start"
         }
     ],
     "permissions": [
