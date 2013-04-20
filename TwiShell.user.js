@@ -7,6 +7,7 @@
 // @version 1.0
 // @run-at document-end
 // @require http://code.jquery.com/jquery-2.0.0.min.js
+// @grant GM_addStyle
 // ==/UserScript==
 
 if (typeof addStyle === "undefined") {
@@ -28,6 +29,10 @@ if (typeof addStyle === "undefined") {
     };
 }
 
+//noinspection ThisExpressionReferencesGlobalObjectJS
+this.$ = this.jQuery = jQuery.noConflict(true);
+
+//noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
     var document = window.document,
         setTimeout = window.setTimeout,
@@ -236,4 +241,4 @@ if (typeof addStyle === "undefined") {
         HotKey();
         ExpandURL();
     });
-})(window);
+})(this);
