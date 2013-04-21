@@ -10,9 +10,8 @@
 // @grant GM_addStyle
 // ==/UserScript==
 
-var addStyle = this.GM_addStyle || this.PRO_addStyle;
-if (typeof addStyle === "undefined") {
-    addStyle = function (css) {
+if (typeof GM_addStyle === "undefined") {
+    GM_addStyle = function (css) {
         var heads = document.getElementsByTagName("head");
         if (heads.length > 0) {
             var node = document.createElement("style");
@@ -29,7 +28,6 @@ this.$ = this.jQuery = jQuery.noConflict(true);
 
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
-    var InstagramPreview;
     var document = window.document,
         setTimeout = window.setTimeout,
         clearTimeout = window.clearTimeout,
@@ -114,25 +112,16 @@ this.$ = this.jQuery = jQuery.noConflict(true);
         };
 
         var waitForRetweetDialog = function (callback) {
-            if (typeof MutationObserver !== "undefined") {
-                var observer = new MutationObserver(function (mutations) {
-                    for (var i = 0; i < mutations.length; i += 1) {
-                        if (mutations[i].attributeName === "style" && isRetweetDialogShow()) {
-                            observer.disconnect();
-                            callback();
-                        }
-                    }
-                });
-                observer.observe(jRetweetDialog.get(0), { attributes: true });
-            }
-            else {
-                jRetweetDialog.on("DOMAttrModified", function (event) {
-                    if (event.attrName === "style" && isRetweetDialogShow()) {
-                        jRetweetDialog.off("DOMAttrModified");
+            var observer = new MutationObserver(function (mutations) {
+                for (var i = mutations.length - 1; i >= 0; i -= 1) {
+                    if (mutations[i].attributeName === "style" && isRetweetDialogShow()) {
+                        observer.disconnect();
                         callback();
+                        break
                     }
-                });
-            }
+                }
+            });
+            observer.observe(jRetweetDialog.get(0), { attributes: true });
         };
 
         var fillInTweetBox = function (text) {
@@ -171,7 +160,7 @@ this.$ = this.jQuery = jQuery.noConflict(true);
             });
         };
 
-        addStyle(".cannot-retweet{display: inline !important;}");
+        GM_addStyle(".cannot-retweet{display: inline !important;}");
         replaceCancelButton();
     };
 
@@ -222,14 +211,8 @@ this.$ = this.jQuery = jQuery.noConflict(true);
         };
 
         var throttledExpandAllLinks = throttle(expandAllLinks);
-        if (typeof MutationObserver !== "undefined") {
-            var observer = new MutationObserver(throttledExpandAllLinks);
-            observer.observe(document, { childList: true, subtree: true });
-        }
-        else {
-            document.addEventListener("DOMNodeInserted", throttledExpandAllLinks, false);
-            document.addEventListener("DOMSubtreeModified", throttledExpandAllLinks, false);
-        }
+        var observer = new MutationObserver(throttledExpandAllLinks);
+        observer.observe(document, { childList: true, subtree: true });
     };
 
     $(document).ready(function () {
