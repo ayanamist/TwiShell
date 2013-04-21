@@ -10,21 +10,16 @@
 // @grant GM_addStyle
 // ==/UserScript==
 
+var addStyle = this.GM_addStyle || this.PRO_addStyle;
 if (typeof addStyle === "undefined") {
-    var addStyle = function (css) {
-        if (typeof GM_addStyle !== "undefined") {
-            GM_addStyle(css);
-        } else if (typeof PRO_addStyle !== "undefined") {
-            PRO_addStyle(css);
-        } else {
-            var heads = document.getElementsByTagName("head");
-            if (heads.length > 0) {
-                var node = document.createElement("style");
-                node.type = "text/css";
-                node.appendChild(document.createTextNode(css));
-                heads[0].appendChild(node);
-                node = null;
-            }
+    addStyle = function (css) {
+        var heads = document.getElementsByTagName("head");
+        if (heads.length > 0) {
+            var node = document.createElement("style");
+            node.type = "text/css";
+            node.appendChild(document.createTextNode(css));
+            heads[0].appendChild(node);
+            node = null;
         }
     };
 }
@@ -237,89 +232,9 @@ this.$ = this.jQuery = jQuery.noConflict(true);
         }
     };
 
-    InstagramPreview = function () {
-        var delegation = function () {
-            var addMediaType = function () {
-                var d = {
-                    to_html: function (a, b) {
-                        var c = a.replace(/\{{2,}/g, "{").replace(/\}{2,}/g, "}");
-                        return phx.util.supplant(c, b);
-                    }
-                };
-
-                var f = {
-                    _queue: [],
-                    push: function (a, b) {
-                        b === !0 ? this._queue.unshift(a) : this._queue.push(a);
-                        this._process();
-                    },
-                    _process: function () {
-                        var a = this;
-                        if (this._isProcessing)
-                            return;
-                        this._isProcessing = true;
-                        setTimeout(function () {
-                            var b = a._queue.shift();
-                            a._isProcessing = false;
-                            b && (b(), a._process());
-                        }, 200)
-                    }
-                };
-
-                phx.mediaType("Instagram", {
-                    icon: "photo",
-                    domain: "//instagr.am",
-                    title: "Instagram",
-                    deciderKey: "phoenix_instagram_and_friends",
-                    ssl: true,
-                    height: 435,
-                    matchers: {
-                        video: /^#{optional_protocol_subdomain}?(?:instagr\.am|instagram\.com)\/p\/([a-zA-Z0-9_\-]+\/?)/i
-                    },
-                    getImageURL: function (a, b) {
-                        var c = this;
-                        this.process(function () {
-                            if (c.data && c.data.href) {
-                                var d = phx.constants.imageSizes;
-                                a === d.small || a === d.medium ? b(c.data.smallSrc) : b(c.data.src)
-                            } else
-                                b(null)
-                        }, {size: a})
-                    },
-                    process: function (a, b) {
-                        this.data.href = d.to_html("http:{{domain}}/p/{{slug}}",
-                            {domain: this.constructor.domain, slug: this.slug});
-                        this.data.src = phx.util.joinPath(this.data.href, "media/?size=l");
-                        this.data.smallSrc = phx.util.joinPath(this.data.href, "media/?size=t");
-                        this.data.name = this.constructor._name;
-                        f.push(a, b && b.size === phx.constants.imageSizes.large);
-                    },
-                    content: function () {
-                        var a = '<div class="media"><a class="twitter-timeline-link media-thumbnail" href="{{href}}" target="_blank"><img src="{{src}}" alt="Embedded image permalink"/></a></div>';
-                        return d.to_html(a, this.data);
-                    },
-                    flaggable: true
-                });
-            };
-            var waitForPhx = function () {
-                if (!window.phx) {
-                    setTimeout(waitForPhx, 100);
-                }
-                else {
-                    addMediaType();
-                }
-            };
-            waitForPhx();
-        };
-        var script = document.createElement("script");
-        script.innerHTML = "(" + delegation.toString() + ")();";
-        document.body.appendChild(script);
-    };
-
     $(document).ready(function () {
         RT();
         HotKey();
         ExpandURL();
-        InstagramPreview();
     });
 })(this);
