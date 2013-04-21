@@ -196,18 +196,21 @@ this.$ = this.jQuery = jQuery.noConflict(true);
     };
 
     var ExpandURL = function () {
+        var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i;
+
         var expandAllLinks = function () {
-            var expandedUrl;
-            Array.prototype.forEach.call(document.querySelectorAll("a.twitter-timeline-link:not(.link-expanded)"),
-                function (node) {
-                    if (/^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/g.test(node.href)) {
-                        expandedUrl = node.getAttribute("data-expanded-url");
-                        if (expandedUrl) {
-                            node.href = expandedUrl;
-                        }
-                        node.className += " link-expanded";
-                    }
-                });
+            var nodes = document.querySelectorAll("a.twitter-timeline-link:not(.link-expanded)"),
+                node,
+                nodeHref,
+                i = nodes.length - 1;
+            for (; i >= 0; i -= 1) {
+                node = nodes[i];
+                nodeHref = node.getAttribute("href");
+                if (tcoMatcher.test(nodeHref)) {
+                    node.setAttribute("href", node.getAttribute("data-expanded-url") || nodeHref);
+                    node.className += " link-expanded";
+                }
+            }
         };
 
         var throttledExpandAllLinks = throttle(expandAllLinks);
