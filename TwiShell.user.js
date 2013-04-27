@@ -7,31 +7,23 @@
 // @version 1.0
 // @run-at document-start
 // @require http://code.jquery.com/jquery-2.0.0.min.js
-// @grant GM_addStyle
 // ==/UserScript==
-
-if (typeof GM_addStyle === "undefined") {
-    GM_addStyle = function (css) {
-        var heads = document.getElementsByTagName("head");
-        if (heads.length > 0) {
-            var node = document.createElement("style");
-            node.type = "text/css";
-            node.appendChild(document.createTextNode(css));
-            heads[0].appendChild(node);
-            node = null;
-        }
-    };
-}
-
-//noinspection ThisExpressionReferencesGlobalObjectJS
-this.$ = this.jQuery = jQuery.noConflict(true);
 
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
-    var document = window.document,
+    var $ = window.jQuery.noConflict(true),
+        document = window.document,
         setTimeout = window.setTimeout,
         clearTimeout = window.clearTimeout,
         MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+    var addStyle = function (css) {
+        var node = document.createElement("style");
+        node.type = "text/css";
+        node.appendChild(document.createTextNode(css));
+        document.documentElement.appendChild(node);
+        node = null;
+    };
 
     var throttle = function (fn, threshhold, scope) {
         threshhold || (threshhold = 250);
@@ -87,7 +79,7 @@ this.$ = this.jQuery = jQuery.noConflict(true);
                     originalTweetText += text;
                 }
             }
-            return "RT " + screenName + ": " + originalTweetText.trim().replace(/\s{2,}/g, " ");
+            return "RT " + screenName + ": " + originalTweetText.trim().replace(/[ ]{2,}/g, " ");
         };
 
         var hideRetweetDialog = function () {
@@ -103,7 +95,11 @@ this.$ = this.jQuery = jQuery.noConflict(true);
         var prepareRT = function () {
             hideRetweetDialog();
             showGlobalTweetDialog();
-            fillInTweetBox(getOriginalTweetText());
+            var text = getOriginalTweetText();
+            text = Array.prototype.map.call(text.split("\n"), function(s) {
+                return "<div>" + s + "</div>";
+            }).join("");
+            fillInTweetBox(text);
         };
 
         var isRetweetDialogShow = function () {
@@ -160,7 +156,7 @@ this.$ = this.jQuery = jQuery.noConflict(true);
             });
         };
 
-        GM_addStyle(".cannot-retweet{display: inline !important;}");
+        addStyle(".cannot-retweet{display: inline !important;}");
         replaceCancelButton();
     };
 
