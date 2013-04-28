@@ -52,14 +52,14 @@
         var ELEMENT_NODE = 1,
             TEXT_NODE = 3;
 
-        var getOriginalTweetText = function () {
+        var getOriginalTweetText = function (tweetNode) {
             var originalTweetText = "",
+                jTweetNode = tweetNode.jquery ? tweetNode : $(tweetNode),
                 childNode,
-                jRetweetDialog = $("#retweet-tweet-dialog"),
-                childNodes = jRetweetDialog.find("div.content p.js-tweet-text").get(0).childNodes,
+                childNodes = jTweetNode.find("div.content p.js-tweet-text").get(0).childNodes,
                 i = 0,
                 text,
-                screenName = jRetweetDialog.find("div.stream-item-header span.username").text().trim();
+                screenName = jTweetNode.find("div.stream-item-header span.username").text().trim();
 
             for (; i < childNodes.length; i += 1) {
                 text = "";
@@ -77,7 +77,11 @@
                     originalTweetText += text;
                 }
             }
-            return "RT " + screenName + ": " + originalTweetText.trim().replace(/[ ]{2,}/g, " ");
+            originalTweetText = Array.prototype.map.call(originalTweetText.split("\n"),function (s) {
+                return "<div>" + s + "</div>";
+            }).join("");
+
+            return "RT " + screenName + ": " + originalTweetText.replace(/\s+$/g, "");
         };
 
         var hideRetweetDialog = function () {
@@ -92,33 +96,11 @@
             jGlobalDialog.find(".modal-title").html(jRetweetDialog.find(".modal-title").text());
         };
 
-        var prepareRT = function () {
+        var prepareRT = function (tweetNode) {
             hideRetweetDialog();
             showGlobalTweetDialog();
-            var text = getOriginalTweetText();
-            text = Array.prototype.map.call(text.split("\n"),function (s) {
-                return "<div>" + s + "</div>";
-            }).join("");
+            var text = getOriginalTweetText(tweetNode);
             fillInTweetBox(text);
-        };
-
-        var isRetweetDialogShow = function () {
-            // I don't know why but when no "opacity" style, its value is "1".
-            var jRetweetDialog = $("#retweet-tweet-dialog");
-            return jRetweetDialog.css("display") === "block" && +jRetweetDialog.css("opacity") <= 1;
-        };
-
-        var waitForRetweetDialog = function (callback) {
-            var observer = new MutationObserver(function (mutations) {
-                for (var i = mutations.length - 1; i >= 0; i -= 1) {
-                    if (mutations[i].attributeName === "style" && isRetweetDialogShow()) {
-                        observer.disconnect();
-                        callback();
-                        break
-                    }
-                }
-            });
-            observer.observe($("#retweet-tweet-dialog").get(0), { attributes: true });
         };
 
         var fillInTweetBox = function (text) {
@@ -136,26 +118,28 @@
         };
 
         var replaceCancelButton = function () {
-            $("#retweet-tweet-dialog").
-                find("button.cancel-action").
+            var jRetweetDialog = $("#retweet-tweet-dialog");
+            jRetweetDialog.find("button.cancel-action").
                 addClass("rt-action").
                 removeClass("cancel-action").
-                text("RT").click(prepareRT);
+                text("RT").
+                click(function(){
+                    prepareRT(jRetweetDialog.find(".tweet"));
+                });
         };
 
         var rtForProtected = function () {
             addStyle(".cannot-retweet{display: inline !important;}");
-            $(document).on("mouseup", ".cannot-retweet b", function (evt) {
-                if (evt.button == 2) { // Ignore right-clicks
+            $(document).on("mouseup", ".retweet.cannot-retweet", function (evtMouseUp) {
+                if (evtMouseUp.button == 2) { // Ignore right-clicks
                     return;
                 }
-                $(evt.target).on("click", function () {
-                    $(evt.target).off("click");
-                    $("#retweet-tweet-dialog").css("visibility", "hidden");
-                    waitForRetweetDialog(function () {
-                        prepareRT();
-                        $("#retweet-tweet-dialog").css("display", "none").css("visibility", "");
-                    });
+                var jRTAction = $(evtMouseUp.target);
+                jRTAction.on("click", function (evtClick) {
+                    jRTAction.off("click");
+                    evtClick.stopPropagation();
+                    evtClick.preventDefault();
+                    prepareRT(jRTAction.parents(".tweet"));
                 });
             });
         };
