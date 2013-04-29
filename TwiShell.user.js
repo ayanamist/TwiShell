@@ -12,10 +12,7 @@
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
     var $ = window.jQuery.noConflict(true),
-        document = window.document,
-        setTimeout = window.setTimeout,
-        clearTimeout = window.clearTimeout,
-        MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+        document = window.document;
 
     var addStyle = function (css) {
         var node = document.createElement("style");
@@ -25,27 +22,66 @@
         node = null;
     };
 
-    var throttle = function (fn, threshhold, scope) {
-        threshhold || (threshhold = 250);
-        var last,
-            deferTimer;
-        return function () {
-            var context = scope || this;
+    var addScript = function (scriptText) {
+        var node = document.createElement("script");
+        node.type = "text/javascript";
+        node.innerHTML = scriptText;
+        document.getElementsByTagName("head")[0].appendChild(node);
+        node = null;
+    };
 
-            var now = Date.now(),
-                args = arguments;
-            if (last && now < last + threshhold) {
-                // hold on to it
-                clearTimeout(deferTimer);
-                deferTimer = setTimeout(function () {
-                    last = now;
-                    fn.apply(context, args);
-                }, threshhold);
-            } else {
-                last = now;
-                fn.apply(context, args);
+    var Utils = {
+        isInit: false,
+        _remoteQueue: [],
+        init: function () {
+            var delegate = function delegate() {
+                if (typeof window.$ === "undefined") {
+                    setTimeout(delegate, 100);
+                    return;
+                }
+                document.addEventListener("remote$Listener", function (remoteEvt) {
+                    var type = remoteEvt.detail.type,
+                        selector = remoteEvt.detail.selector;
+                    $(selector).on(type, function (localEvt) {
+                        var callbackEvt = new CustomEvent("remote$" + type, {
+                            detail: {event: localEvt}
+                        });
+                        document.dispatchEvent(callbackEvt);
+                    });
+                }, false);
+                var okEvt = new CustomEvent("remote$OK");
+                document.dispatchEvent(okEvt);
+            };
+            document.addEventListener("remote$OK", function okCallback(){
+                document.removeEventListener("remote$OK", okCallback, false);
+                Utils.isInit = true;
+                Utils.finishJob();
+            }, false);
+            addScript("(" + delegate.toString() + ")()");
+
+        },
+        finishJob: function () {
+            var remoteCall = function (selector, type, callback) {
+                document.addEventListener("remote$" + type, function (callbackEvt) {
+                    callback(callbackEvt.detail.event);
+                }, false);
+                var remoteEvt = new CustomEvent("remote$Listener", {
+                    detail: {type: type, selector: selector}
+                });
+                document.dispatchEvent(remoteEvt);
+            };
+            var job;
+            if (Utils.isInit) {
+                while (Utils._remoteQueue.length) {
+                    job = Utils._remoteQueue.pop();
+                    remoteCall.apply(null, job);
+                }
             }
-        };
+        },
+        addRemoteEventListener: function (selector, type, callback) {
+            Utils._remoteQueue.push([selector, type, callback]);
+            Utils.finishJob();
+        }
     };
 
     var RT = function () {
@@ -123,7 +159,7 @@
                 addClass("rt-action").
                 removeClass("cancel-action").
                 text("RT").
-                click(function(){
+                click(function () {
                     prepareRT(jRetweetDialog.find(".tweet"));
                 });
         };
@@ -135,8 +171,8 @@
                     return;
                 }
                 var jRTAction = $(evtMouseUp.target);
-                jRTAction.on("click", function (evtClick) {
-                    jRTAction.off("click");
+                jRTAction.on("click", function rtClick(evtClick) {
+                    jRTAction.off("click", rtClick);
                     evtClick.stopPropagation();
                     evtClick.preventDefault();
                     prepareRT(jRTAction.parents(".tweet"));
@@ -179,31 +215,29 @@
     };
 
     var ExpandURL = function () {
-        var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i;
+        var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i,
+            nodeHref,
+            expandedUrl;
 
-        var expandAllLinks = function () {
-            var nodes = document.querySelectorAll("a.twitter-timeline-link:not(.link-expanded)"),
-                node,
-                nodeHref,
-                i = nodes.length - 1;
-            for (; i >= 0; i -= 1) {
-                node = nodes[i];
-                nodeHref = node.getAttribute("href");
+        var expandAllUrls = function (tweetNode) {
+            Array.prototype.map.call(tweetNode.querySelectorAll("a.twitter-timeline-link"), function (aNode) {
+                nodeHref = aNode.getAttribute("href");
                 if (tcoMatcher.test(nodeHref)) {
-                    node.setAttribute("href", node.getAttribute("data-expanded-url") || nodeHref);
-                    node.className += " link-expanded";
+                    expandedUrl = aNode.getAttribute("data-expanded-url");
+                    expandedUrl && aNode.setAttribute("href", expandedUrl);
                 }
-            }
+            });
         };
-
-        var throttledExpandAllLinks = throttle(expandAllLinks);
-        var observer = new MutationObserver(throttledExpandAllLinks);
-        observer.observe(document, { childList: true, subtree: true });
+        Utils.addRemoteEventListener("#timeline", "uiHasInjectedTimelineItem", function (evt) {
+            expandAllUrls(evt.target);
+        });
+        expandAllUrls(document);
     };
 
-    HotKey();
-    ExpandURL();
-    $(document).ready(function(){
+    $(document).ready(function () {
+        Utils.init();
+        HotKey();
         RT();
+        ExpandURL();
     });
 })(this);
