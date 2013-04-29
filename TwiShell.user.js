@@ -42,7 +42,7 @@
                 document.addEventListener("remote$Listener", function (remoteEvt) {
                     var type = remoteEvt.detail.type,
                         selector = remoteEvt.detail.selector;
-                    $(selector).on(type, function (localEvt) {
+                    (selector == "document" ? $(document) : $(selector)).on(type, function (localEvt) {
                         var callbackEvt = new CustomEvent("remote$" + type, {
                             detail: {event: localEvt}
                         });
@@ -229,6 +229,12 @@
             });
         };
         Utils.addRemoteEventListener("#timeline", "uiHasInjectedTimelineItem", function (evt) {
+            expandAllUrls(evt.target);
+        });
+        Utils.addRemoteEventListener("document", "uiPageChanged", function (evt) {
+            expandAllUrls(evt.target);
+        });
+        Utils.addRemoteEventListener("document", "uiSwiftLoaded", function (evt) {
             expandAllUrls(evt.target);
         });
         expandAllUrls(document);
