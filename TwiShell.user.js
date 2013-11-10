@@ -4,7 +4,8 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 2.0
+// @version 3.0
+// @grant none
 // @run-at document-start
 // ==/UserScript==
 
