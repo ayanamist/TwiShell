@@ -208,8 +208,7 @@
         if (!timeline) {
             return;
         }
-        var headerInner = timeline.querySelector(".header-inner");
-        var publicBtn = headerInner.querySelector(".js-user-tl-public");
+        var publicBtn = timeline.querySelector(".js-user-tl-public");
         if (publicBtn) {
             return;
         }
@@ -231,7 +230,14 @@
             removeClass(timeline, "not-timeline");
         }
 
-        headerInner.appendChild(publicBtn);
+        var headerInner = timeline.querySelector(".header-inner");
+        var searchHeader = headerInner.querySelector(".search-header");
+        if (searchHeader) {
+            searchHeader.insertBefore(publicBtn, searchHeader.querySelector(".search-title"));
+        }
+        else {
+            headerInner.appendChild(publicBtn);
+        }
         var streamContainer = document.getElementById("stream-items-id");
         publicBtn.addEventListener("click", function () {
             toggleClass(publicBtn, "active");
@@ -279,6 +285,7 @@
         retweetDialog = document.getElementById("retweet-tweet-dialog");
         HotKey();
         replaceCancelButton();
+        addPublicBtn();
     }, false);
 
     var styles = [
@@ -288,6 +295,8 @@
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
         ".inline-content-header-btn {float: right; margin-top: -24px;}",
+        ".search-header .search-title {width: 386px;}",
+        ".search-header .inline-content-header-btn {padding: 5px 10px; margin: -5px 4px 0 0;}",
         ".public-stream-items .not-public-stream-item {display: none;}",
         ".not-timeline .user-tl-public-btn {display: none;}",
         "}"
