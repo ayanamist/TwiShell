@@ -46,7 +46,7 @@
                     text = childNode.textContent;
                 }
                 else if (childNode.nodeType === ELEMENT_NODE) {
-                    text = childNode.getAttribute("title") || childNode.textContent;
+                    text = childNode.getAttribute("data-expanded-url") || childNode.textContent;
                 }
                 if (text) {
                     acc.push(text);
