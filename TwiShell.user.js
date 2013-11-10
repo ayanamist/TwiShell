@@ -4,85 +4,16 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 1.0
+// @version 1.4
 // @run-at document-start
-// @require http://code.jquery.com/jquery-2.0.0.min.js
+// @require http://code.jquery.com/jquery-2.0.3.min.js
 // ==/UserScript==
 
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
+    'use strict';
     var $ = window.jQuery.noConflict(true),
         document = window.document;
-
-    var addStyle = function (css) {
-        var node = document.createElement("style");
-        node.type = "text/css";
-        node.appendChild(document.createTextNode(css));
-        document.documentElement.appendChild(node);
-        node = null;
-    };
-
-    var addScript = function (scriptText) {
-        var node = document.createElement("script");
-        node.type = "text/javascript";
-        node.innerHTML = scriptText;
-        document.getElementsByTagName("head")[0].appendChild(node);
-        node = null;
-    };
-
-    var Utils = {
-        isInit: false,
-        _remoteQueue: [],
-        init: function () {
-            var delegate = function delegate() {
-                if (typeof window.$ === "undefined") {
-                    setTimeout(delegate, 100);
-                    return;
-                }
-                document.addEventListener("remote$Listener", function (remoteEvt) {
-                    var type = remoteEvt.detail.type,
-                        selector = remoteEvt.detail.selector;
-                    (selector == "document" ? $(document) : $(selector)).on(type, function (localEvt) {
-                        var callbackEvt = new CustomEvent("remote$" + type, {
-                            detail: {event: localEvt}
-                        });
-                        document.dispatchEvent(callbackEvt);
-                    });
-                }, false);
-                var okEvt = new CustomEvent("remote$OK");
-                document.dispatchEvent(okEvt);
-            };
-            document.addEventListener("remote$OK", function okCallback(){
-                document.removeEventListener("remote$OK", okCallback, false);
-                Utils.isInit = true;
-                Utils.finishJob();
-            }, false);
-            addScript("(" + delegate.toString() + ")()");
-
-        },
-        finishJob: function () {
-            var remoteCall = function (selector, type, callback) {
-                document.addEventListener("remote$" + type, function (callbackEvt) {
-                    callback(callbackEvt.detail.event);
-                }, false);
-                var remoteEvt = new CustomEvent("remote$Listener", {
-                    detail: {type: type, selector: selector}
-                });
-                document.dispatchEvent(remoteEvt);
-            };
-            var job;
-            if (Utils.isInit) {
-                while (Utils._remoteQueue.length) {
-                    job = Utils._remoteQueue.pop();
-                    remoteCall.apply(null, job);
-                }
-            }
-        },
-        addRemoteEventListener: function (selector, type, callback) {
-            Utils._remoteQueue.push([selector, type, callback]);
-            Utils.finishJob();
-        }
-    };
 
     var RT = function () {
         var ELEMENT_NODE = 1,
@@ -165,7 +96,6 @@
         };
 
         var rtForProtected = function () {
-            addStyle(".cannot-retweet{display: inline !important;}");
             $(document).on("mouseup", ".retweet.cannot-retweet", function (evtMouseUp) {
                 if (evtMouseUp.button == 2) { // Ignore right-clicks
                     return;
@@ -214,36 +144,48 @@
 
     };
 
-    var ExpandURL = function () {
-        var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i,
-            nodeHref,
-            expandedUrl;
-
-        var expandAllUrls = function (tweetNode) {
-            Array.prototype.map.call(tweetNode.querySelectorAll("a.twitter-timeline-link"), function (aNode) {
-                nodeHref = aNode.getAttribute("href");
-                if (tcoMatcher.test(nodeHref)) {
-                    expandedUrl = aNode.getAttribute("data-expanded-url");
-                    expandedUrl && aNode.setAttribute("href", expandedUrl);
-                }
-            });
-        };
-        Utils.addRemoteEventListener("#timeline", "uiHasInjectedTimelineItem", function (evt) {
-            expandAllUrls(evt.target);
-        });
-        Utils.addRemoteEventListener("document", "uiPageChanged", function (evt) {
-            expandAllUrls(evt.target);
-        });
-        Utils.addRemoteEventListener("document", "uiSwiftLoaded", function (evt) {
-            expandAllUrls(evt.target);
-        });
-        expandAllUrls(document);
+    var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i;
+    var expandURL = function (node) {
+        var expandedUrl = node.getAttribute("data-expanded-url");
+        if (expandedUrl && tcoMatcher.test(node.getAttribute("href"))) {
+            node.setAttribute("href", expandedUrl);
+        }
     };
 
     $(document).ready(function () {
-        Utils.init();
         HotKey();
         RT();
-        ExpandURL();
+    });
+
+    var styles = [
+        "@media screen {",
+        ".cannot-retweet{display: inline !important;}", // rt for protected tweet
+        ".content-main, .profile-header {float: left !important;}",
+        ".dashboard {float: right !important;}",
+        "#suggested-users {clear: none !important;}",
+        "}"
+    ].join("");
+
+    var addStyle = function (css) {
+        var node = document.createElement("style");
+        node.type = "text/css";
+        node.appendChild(document.createTextNode(css));
+        document.documentElement.appendChild(node);
+        node = null;
+    };
+
+    addStyle(styles);
+
+    new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            Array.prototype.forEach.call((mutation.addedNodes || []), function (addedNode) {
+                if (addedNode.nodeType === 1) { // Element
+                    Array.prototype.forEach.call(addedNode.getElementsByTagName("A"), expandURL);
+                }
+            });
+        });
+    }).observe(document, {
+        childList: true,
+        subtree: true
     });
 })(this);
