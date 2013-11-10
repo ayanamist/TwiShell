@@ -217,6 +217,20 @@
         div.innerHTML = publicBtnHtml;
         publicBtn = div.childNodes[0];
 
+        var pathname = document.location.pathname.toLowerCase();
+        if (/\/lists$/.test(pathname) ||
+            pathname.indexOf("/following") >= 0 ||
+            pathname.indexOf("/followers") >= 0 ||
+            pathname.indexOf("/members") >= 0 ||
+            pathname.indexOf("/subscribers") >= 0 ||
+            pathname.indexOf("/memberships") >= 0 ||
+            pathname.indexOf("/settings") >= 0) {
+            addClass(timeline, "not-timeline");
+        }
+        else {
+            removeClass(timeline, "not-timeline");
+        }
+
         headerInner.appendChild(publicBtn);
         var streamContainer = document.getElementById("stream-items-id");
         publicBtn.addEventListener("click", function () {
@@ -258,6 +272,8 @@
         willWantsMoreItems();
     };
 
+    window.addEventListener("popstate", addPublicBtn, false);
+
     document.addEventListener("DOMContentLoaded", function () {
         globalDialog = document.getElementById("global-tweet-dialog");
         retweetDialog = document.getElementById("retweet-tweet-dialog");
@@ -272,7 +288,8 @@
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
         ".inline-content-header-btn {float: right; margin-top: -24px;}",
-        ".public-stream-items .not-public-stream-item {display: none}",
+        ".public-stream-items .not-public-stream-item {display: none;}",
+        ".not-timeline .user-tl-public-btn {display: none;}",
         "}"
     ].join("");
 
