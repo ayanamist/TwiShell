@@ -34,6 +34,10 @@
         node.classList.remove(cls);
     };
 
+    var toggleClass = function (node, cls) {
+        node.classList.toggle(cls);
+    };
+
     var globalDialog,
         retweetDialog;
 
@@ -146,6 +150,23 @@
         }
     };
 
+    var publicBtnHtml = "<a class=\"btn user-tl-public-btn inline-content-header-btn js-user-tl-public\">Public</a>";
+    var addPublicBtn = function (contentMainHeading) {
+        var headerInner = contentMainHeading.parentNode;
+        var publicBtn = headerInner.querySelector(".js-user-tl-public");
+        if (!publicBtn) {
+            var div = document.createElement("div");
+            div.innerHTML = publicBtnHtml;
+            publicBtn = div.childNodes[0];
+            headerInner.appendChild(publicBtn);
+            var streamContainer = headerInner.parentNode.parentNode.querySelector("#stream-items-id");
+            publicBtn.addEventListener("click", function () {
+                toggleClass(publicBtn, "active");
+                toggleClass(streamContainer, "public-stream-items");
+            });
+        }
+    };
+
     document.addEventListener("DOMContentLoaded", function () {
         globalDialog = document.getElementById("global-tweet-dialog");
         retweetDialog = document.getElementById("retweet-tweet-dialog");
@@ -159,6 +180,8 @@
         ".content-main, .profile-header {float: left !important;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
+        ".inline-content-header-btn {float: right; margin-top: -24px;}",
+        ".public-stream-items .not-public-stream-item {display: none}",
         "}"
     ].join("");
 
@@ -192,6 +215,16 @@
                                 prepareRT(target);
                             }
                         }, false);
+                    });
+                    var contentMainHeading = addedNode.querySelector("#content-main-heading");
+                    if (contentMainHeading) {
+                        addPublicBtn(contentMainHeading);
+                    }
+                    Array.prototype.forEach.call(addedNode.querySelectorAll(".tweet-text"), function (tweetText) {
+                        for (var tweet = tweetText.parentNode; !(hasClass(tweet, "tweet")); tweet = tweet.parentNode) {}
+                        if (tweet.getAttribute("data-is-reply-to") === "true" || tweetText.textContent.trim()[0] === "@") {
+                            addClass(tweet.parentNode, "not-public-stream-item");
+                        }
                     });
                 }
             });
