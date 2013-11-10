@@ -23,7 +23,7 @@
     };
 
     var hasClass = function (node, cls) {
-        return node.classList.contains(cls);
+        return node.classList && node.classList.contains(cls);
     };
 
     var addClass = function (node, cls) {
@@ -36,6 +36,33 @@
 
     var toggleClass = function (node, cls) {
         node.classList.toggle(cls);
+    };
+
+    var wantsMoreTimelineItems = function () {
+        var event = document.createEvent("Event");
+        event.initEvent("uiNearTheBottom", true, true);
+        document.dispatchEvent(event);
+    };
+
+    // throttle function call in specified interval
+    var throttle = function (fn, interval) {
+        var fnTimer;
+        var repeatCalling = false;
+        return function wrapper() {
+            if (!fnTimer) {
+                fn();
+                fnTimer = setTimeout(function () {
+                    fnTimer = null;
+                    if (repeatCalling) {
+                        repeatCalling = false;
+                        wrapper();
+                    }
+                }, interval);
+            }
+            else {
+                repeatCalling = true;
+            }
+        };
     };
 
     var globalDialog,
@@ -110,6 +137,25 @@
         }, false);
     };
 
+    var isAttachedMap = Object.create(null);
+    var attachProtectedTweet = function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".tweet[data-protected=true]"), function (protectedTweet) {
+            var itemId = protectedTweet.getAttribute("data-item-id");
+            if (!(isAttachedMap[itemId])) {
+                isAttachedMap[itemId] = true;
+                protectedTweet.querySelector(".retweet.cannot-retweet").addEventListener("click", function (evt) {
+                    if (evt.button == 2) { // Ignore right-clicks
+                        return;
+                    }
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    for (var tweet = evt.target.parentNode; !(hasClass(tweet, "tweet")); tweet = tweet.parentNode) {}
+                    prepareRT(tweet);
+                }, false);
+            }
+        });
+    };
+
     var HotKey = function () {
         var KEY_ENTER = 13,
             KEY_SHIFT = 16,
@@ -143,28 +189,73 @@
     };
 
     var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i;
-    var expandURL = function (node) {
-        var expandedUrl = node.getAttribute("data-expanded-url");
-        if (expandedUrl && tcoMatcher.test(node.getAttribute("href"))) {
-            node.setAttribute("href", expandedUrl);
-        }
+    var expandAllUrl = function () {
+        Array.prototype.forEach.call(
+            document.querySelectorAll("a.twitter-timeline-link:not(.url-expanded)"),
+            function (tlLink) {
+                var expandedUrl = tlLink.getAttribute("data-expanded-url");
+                if (expandedUrl && tcoMatcher.test(tlLink.getAttribute("href"))) {
+                    tlLink.setAttribute("href", expandedUrl);
+                }
+                addClass(tlLink, "url-expanded");
+            }
+        );
     };
 
     var publicBtnHtml = "<a class=\"btn user-tl-public-btn inline-content-header-btn js-user-tl-public\">Public</a>";
-    var addPublicBtn = function (contentMainHeading) {
-        var headerInner = contentMainHeading.parentNode;
-        var publicBtn = headerInner.querySelector(".js-user-tl-public");
-        if (!publicBtn) {
-            var div = document.createElement("div");
-            div.innerHTML = publicBtnHtml;
-            publicBtn = div.childNodes[0];
-            headerInner.appendChild(publicBtn);
-            var streamContainer = headerInner.parentNode.parentNode.querySelector("#stream-items-id");
-            publicBtn.addEventListener("click", function () {
-                toggleClass(publicBtn, "active");
-                toggleClass(streamContainer, "public-stream-items");
-            });
+    var addPublicBtn = function () {
+        var timeline = document.getElementById("timeline");
+        if (!timeline) {
+            return;
         }
+        var headerInner = timeline.querySelector(".header-inner");
+        var publicBtn = headerInner.querySelector(".js-user-tl-public");
+        if (publicBtn) {
+            return;
+        }
+        var div = document.createElement("div");
+        div.innerHTML = publicBtnHtml;
+        publicBtn = div.childNodes[0];
+
+        headerInner.appendChild(publicBtn);
+        var streamContainer = document.getElementById("stream-items-id");
+        publicBtn.addEventListener("click", function () {
+            toggleClass(publicBtn, "active");
+            toggleClass(streamContainer, "public-stream-items");
+            willWantsMoreItems();
+        });
+    };
+
+    var willWantsMoreItems = function () {
+        var streamContainer = document.getElementById("stream-items-id");
+        if (!streamContainer || !(hasClass(streamContainer, "public-stream-items"))) {
+            return;
+        }
+        var streamItems = streamContainer.childNodes;
+        var streamItemsLength = streamItems.length;
+        var last20Items = Array.prototype.slice.call(streamItems, Math.max(0, streamItemsLength - 20));
+        // if the last 20 items are all not public, infinite scroll of twitter will be broken
+        // so we should invoke loading manually to fix the problem
+        if (last20Items.every(function (item) {
+            return hasClass(item, "not-public-stream-item");
+        }) || streamContainer.querySelectorAll(".stream-item:not(.not-public-stream-item)").length < 20) {
+            wantsMoreTimelineItems();
+        }
+    };
+
+    var isPublicMap = Object.create(null);
+    var addNotPublicClass = function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".original-tweet"), function (originalTweet) {
+            var itemId = originalTweet.getAttribute("data-item-id");
+            if (!(isPublicMap[itemId])) {
+                isPublicMap[itemId] = true;
+                if (originalTweet.getAttribute("data-is-reply-to") === "true" ||
+                    originalTweet.querySelector(".tweet-text").textContent.trim()[0] === "@") {
+                    addClass(originalTweet.parentNode, "not-public-stream-item");
+                }
+            }
+        });
+        willWantsMoreItems();
     };
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -195,39 +286,18 @@
 
     addStyle(styles);
 
+    var throttledExpandUrl = throttle(expandAllUrl, 100);
+    var throttledAttachProtectedTweet = throttle(attachProtectedTweet, 100);
+    var throttledAddPublicBtn = throttle(addPublicBtn, 100);
+    var throttledAddNotPublicClass = throttle(addNotPublicClass, 100);
     new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
-            Array.prototype.forEach.call((mutation.addedNodes || []), function (addedNode) {
-                if (addedNode.nodeType === ELEMENT_NODE) {
-                    Array.prototype.forEach.call(addedNode.getElementsByTagName("A"), expandURL);
-                    Array.prototype.forEach.call(addedNode.querySelectorAll(".retweet.cannot-retweet"), function (node) {
-                        node.addEventListener("click", function (evt) {
-                            if (evt.button == 2) { // Ignore right-clicks
-                                return;
-                            }
-                            evt.stopPropagation();
-                            evt.preventDefault();
-                            var target = evt.target;
-                            while (target && !(hasClass(target, "tweet"))) {
-                                target = target.parentNode;
-                            }
-                            if (target) {
-                                prepareRT(target);
-                            }
-                        }, false);
-                    });
-                    var contentMainHeading = addedNode.querySelector("#content-main-heading");
-                    if (contentMainHeading) {
-                        addPublicBtn(contentMainHeading);
-                    }
-                    Array.prototype.forEach.call(addedNode.querySelectorAll(".tweet-text"), function (tweetText) {
-                        for (var tweet = tweetText.parentNode; !(hasClass(tweet, "tweet")); tweet = tweet.parentNode) {}
-                        if (tweet.getAttribute("data-is-reply-to") === "true" || tweetText.textContent.trim()[0] === "@") {
-                            addClass(tweet.parentNode, "not-public-stream-item");
-                        }
-                    });
-                }
-            });
+            if (mutation.addedNodes) {
+                throttledExpandUrl();
+                throttledAttachProtectedTweet();
+                throttledAddPublicBtn();
+                throttledAddNotPublicClass();
+            }
         });
     }).observe(document, {
         childList: true,
