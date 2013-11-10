@@ -1,6 +1,6 @@
 {
     "name": "TwiShell",
-    "version": "1.4",
+    "version": "2.0",
     "manifest_version": 2,
     "description": "Enhance Twitter Web with lots of features.",
     "icons": {
@@ -13,7 +13,6 @@
                 "*://twitter.com/*"
             ],
             "js": [
-                "jquery-2.0.3.min.js",
                 "TwiShell.user.js"
             ],
             "run_at": "document_start"

@@ -4,113 +4,106 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 1.4
+// @version 2.0
 // @run-at document-start
-// @require http://code.jquery.com/jquery-2.0.3.min.js
 // ==/UserScript==
 
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function (window) {
     'use strict';
-    var $ = window.jQuery.noConflict(true),
-        document = window.document;
+    var document = window.document;
 
-    var RT = function () {
-        var ELEMENT_NODE = 1,
-            TEXT_NODE = 3;
+    var ELEMENT_NODE = 1,
+        TEXT_NODE = 3;
 
-        var getOriginalTweetText = function (tweetNode) {
-            var originalTweetText = "",
-                jTweetNode = tweetNode.jquery ? tweetNode : $(tweetNode),
-                childNode,
-                childNodes = jTweetNode.find("div.content p.js-tweet-text").get(0).childNodes,
-                i = 0,
-                text,
-                screenName = jTweetNode.find("div.stream-item-header span.username").text().trim();
+    var click = function (node) {
+        var event = document.createEvent("Event");
+        event.initEvent("click", true, true);
+        node.dispatchEvent(event);
+    };
 
-            for (; i < childNodes.length; i += 1) {
-                text = "";
-                childNode = childNodes[i];
+    var hasClass = function (node, cls) {
+        return node.classList.contains(cls);
+    };
+
+    var addClass = function (node, cls) {
+        node.classList.add(cls);
+    };
+
+    var removeClass = function (node, cls) {
+        node.classList.remove(cls);
+    };
+
+    var globalDialog,
+        retweetDialog;
+
+    var getOriginalTweetText = function (tweetNode) {
+        var originalTweetText = Array.prototype.reduce.call(
+            tweetNode.querySelector("div.content p.js-tweet-text").childNodes,
+            function (acc, childNode) {
+                var text;
                 if (childNode.nodeType === TEXT_NODE) {
                     text = childNode.textContent;
                 }
                 else if (childNode.nodeType === ELEMENT_NODE) {
-                    text = $(childNode).find(":not(.tco-ellipsis)").text();
-                    if (!text) {
-                        text = childNode.textContent;
-                    }
+                    text = childNode.getAttribute("title") || childNode.textContent;
                 }
                 if (text) {
-                    originalTweetText += text;
+                    acc.push(text);
                 }
-            }
-            originalTweetText = Array.prototype.map.call(originalTweetText.split("\n"),function (s) {
-                return "<div>" + s + "</div>";
-            }).join("");
+                return acc;
+            },
+            []
+        ).join("");
+        var screenName = tweetNode.querySelector("div.stream-item-header span.username").textContent.trim();
+        return "RT " + screenName + ": " + originalTweetText.split("\n").map(function (s) {
+            return "<div>" + s + "</div>";
+        }).join("");
+    };
 
-            return "RT " + screenName + ": " + originalTweetText.replace(/\s+$/g, "");
-        };
+    var hideRetweetDialog = function () {
+        click(document.querySelector("#retweet-tweet-dialog button.modal-close"));
+    };
 
-        var hideRetweetDialog = function () {
-            $("#retweet-tweet-dialog").find("button.modal-close").click();
-        };
+    var showGlobalTweetDialog = function () {
+        globalDialog.querySelector(".draggable").setAttribute(
+            "style",
+            retweetDialog.querySelector(".draggable").getAttribute("style")
+        );
+        click(document.getElementById("global-new-tweet-button"));
+        globalDialog.querySelector(".modal-title").innerHTML =
+            retweetDialog.querySelector(".modal-title").innerHTML;
+    };
 
-        var showGlobalTweetDialog = function () {
-            var jRetweetDialog = $("#retweet-tweet-dialog"),
-                jGlobalDialog = $("#global-tweet-dialog");
-            jGlobalDialog.find(".draggable").attr("style", jRetweetDialog.find(".draggable").attr("style"));
-            $("#global-new-tweet-button").click();
-            jGlobalDialog.find(".modal-title").html(jRetweetDialog.find(".modal-title").text());
-        };
+    var prepareRT = function (tweetNode) {
+        hideRetweetDialog();
+        showGlobalTweetDialog();
+        var text = getOriginalTweetText(tweetNode);
+        fillInTweetBox(text);
+    };
 
-        var prepareRT = function (tweetNode) {
-            hideRetweetDialog();
-            showGlobalTweetDialog();
-            var text = getOriginalTweetText(tweetNode);
-            fillInTweetBox(text);
-        };
+    var fillInTweetBox = function (text) {
+        var tweetBox = globalDialog.querySelector("div.tweet-box"),
+            range = document.createRange(),
+            selection = window.getSelection();
 
-        var fillInTweetBox = function (text) {
-            var jTweetBox = $("#global-tweet-dialog").find("div.tweet-box"),
-                range = document.createRange(),
-                selection = window.getSelection();
+        tweetBox.innerHTML = text;
+        tweetBox.focus();
+        // Place cursor in the front.
+        range.selectNodeContents(tweetBox);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    };
 
-            jTweetBox.html(text);
-            jTweetBox.focus();
-            // Place cursor in the front.
-            range.selectNodeContents(jTweetBox.get(0));
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        };
-
-        var replaceCancelButton = function () {
-            var jRetweetDialog = $("#retweet-tweet-dialog");
-            jRetweetDialog.find("button.cancel-action").
-                addClass("rt-action").
-                removeClass("cancel-action").
-                text("RT").
-                click(function () {
-                    prepareRT(jRetweetDialog.find(".tweet"));
-                });
-        };
-
-        var rtForProtected = function () {
-            $(document).on("mouseup", ".retweet.cannot-retweet", function (evtMouseUp) {
-                if (evtMouseUp.button == 2) { // Ignore right-clicks
-                    return;
-                }
-                var jRTAction = $(evtMouseUp.target);
-                jRTAction.on("click", function rtClick(evtClick) {
-                    jRTAction.off("click", rtClick);
-                    evtClick.stopPropagation();
-                    evtClick.preventDefault();
-                    prepareRT(jRTAction.parents(".tweet"));
-                });
-            });
-        };
-        replaceCancelButton();
-        rtForProtected();
+    var replaceCancelButton = function () {
+        var btnCancel = retweetDialog.querySelector("button.cancel-action");
+        addClass(btnCancel, "rt-action");
+        removeClass(btnCancel, "cancel-action");
+        btnCancel.innerHTML = "RT";
+        btnCancel.addEventListener("click", function () {
+            prepareRT(retweetDialog.querySelector(".tweet"));
+        }, false);
     };
 
     var HotKey = function () {
@@ -121,26 +114,27 @@
         var isCtrlPressed = false,
             isShiftPressed = false;
 
-        $(document).on("keydown", function (evt) {
+        document.addEventListener("keydown", function (evt) {
             if (evt.which === KEY_CTRL) {
                 isCtrlPressed = true;
             }
             else if (evt.which === KEY_SHIFT) {
                 isShiftPressed = true;
             }
-            else if (evt.which === KEY_ENTER && (isShiftPressed || isCtrlPressed) && $(evt.target).hasClass("tweet-box")) {
-                $(evt.target.parentNode.parentNode).find("button.tweet-action").click();
+            else if (evt.which === KEY_ENTER && (isShiftPressed || isCtrlPressed) &&
+                hasClass(evt.target, "tweet-box")) {
+                click(evt.target.parentNode.parentNode.querySelector("button.tweet-action"));
             }
-        });
+        }, false);
 
-        $(document).on("keyup", function (evt) {
+        document.addEventListener("keyup", function (evt) {
             if (evt.which === KEY_CTRL) {
                 isCtrlPressed = false;
             }
             else if (evt.which === KEY_SHIFT) {
                 isShiftPressed = false;
             }
-        });
+        }, false);
 
     };
 
@@ -152,10 +146,12 @@
         }
     };
 
-    $(document).ready(function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        globalDialog = document.getElementById("global-tweet-dialog");
+        retweetDialog = document.getElementById("retweet-tweet-dialog");
         HotKey();
-        RT();
-    });
+        replaceCancelButton();
+    }, false);
 
     var styles = [
         "@media screen {",
@@ -179,8 +175,24 @@
     new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             Array.prototype.forEach.call((mutation.addedNodes || []), function (addedNode) {
-                if (addedNode.nodeType === 1) { // Element
+                if (addedNode.nodeType === ELEMENT_NODE) {
                     Array.prototype.forEach.call(addedNode.getElementsByTagName("A"), expandURL);
+                    Array.prototype.forEach.call(addedNode.querySelectorAll(".retweet.cannot-retweet"), function (node) {
+                        node.addEventListener("click", function (evt) {
+                            if (evt.button == 2) { // Ignore right-clicks
+                                return;
+                            }
+                            evt.stopPropagation();
+                            evt.preventDefault();
+                            var target = evt.target;
+                            while (target && !(hasClass(target, "tweet"))) {
+                                target = target.parentNode;
+                            }
+                            if (target) {
+                                prepareRT(target);
+                            }
+                        }, false);
+                    });
                 }
             });
         });
