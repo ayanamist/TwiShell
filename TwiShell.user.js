@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.2
+// @version 3.3
 // @grant none
 // @run-at document-start
 // ==/UserScript==
@@ -300,10 +300,11 @@
         ".search-header .inline-content-header-btn {padding: 5px 10px; margin: -5px 4px 0 0;}",
         ".public-stream-items .not-public-stream-item {display: none;}",
         ".not-timeline .user-tl-public-btn {display: none;}",
-        "li.stream-item:not(.open) .has-native-media .cards-media-container {display: none;}",
-        "li.stream-item:not(.open) .has-native-media .stream-item-footer {display: none;}",
-        "li.stream-item:not(.open) .has-native-media .expanded-content {display: none;}",
-        "li.stream-item:not(.open) .has-native-media .bottom-tweet-actions {margin-top: 0;}",
+        "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
+        "li.stream-item:not(.open) .has-cards .js-media-container {max-height: 0; overflow-y: hidden; padding: 0; margin: 0; border: 0;}",
+        "li.stream-item:not(.open) .has-cards .stream-item-footer {display: none;}",
+        "li.stream-item:not(.open) .has-cards .expanded-content {display: none;}",
+        "li.stream-item:not(.open) .has-cards .bottom-tweet-actions {margin-top: 0;}",
         "}"
     ].join("");
 
