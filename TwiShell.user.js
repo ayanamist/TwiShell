@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.4
+// @version 3.5
 // @grant none
 // @run-at document-start
 // ==/UserScript==
@@ -129,6 +129,9 @@
     };
 
     var replaceCancelButton = function () {
+        if (!retweetDialog) { // sometimes it will become null
+            return;
+        }
         var btnCancel = retweetDialog.querySelector("button.cancel-action");
         addClass(btnCancel, "rt-action");
         removeClass(btnCancel, "cancel-action");
@@ -301,6 +304,7 @@
         ".public-stream-items .not-public-stream-item {display: none;}",
         ".not-timeline .user-tl-public-btn {display: none;}",
         "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
+        "li.stream-item:not(.open) .has-cards .metadata ~ .stream-item-footer {height: 0;}",
         "li.stream-item:not(.open) .has-cards .js-media-container {max-height: 0; overflow-y: hidden; padding: 0; margin: 0; border: 0;}",
         "li.stream-item:not(.open) .has-cards .expanded-content {display: none;}",
         "li.stream-item:not(.open) .has-cards .bottom-tweet-actions {margin-top: 0;}",
