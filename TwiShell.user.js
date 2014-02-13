@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.5
+// @version 3.6
 // @grant none
 // @run-at document-start
 // ==/UserScript==
@@ -160,38 +160,6 @@
         });
     };
 
-    var HotKey = function () {
-        var KEY_ENTER = 13,
-            KEY_SHIFT = 16,
-            KEY_CTRL = 17;
-
-        var isCtrlPressed = false,
-            isShiftPressed = false;
-
-        document.addEventListener("keydown", function (evt) {
-            if (evt.which === KEY_CTRL) {
-                isCtrlPressed = true;
-            }
-            else if (evt.which === KEY_SHIFT) {
-                isShiftPressed = true;
-            }
-            else if (evt.which === KEY_ENTER && (isShiftPressed || isCtrlPressed) &&
-                hasClass(evt.target, "tweet-box")) {
-                click(evt.target.parentNode.parentNode.querySelector("button.tweet-action"));
-            }
-        }, false);
-
-        document.addEventListener("keyup", function (evt) {
-            if (evt.which === KEY_CTRL) {
-                isCtrlPressed = false;
-            }
-            else if (evt.which === KEY_SHIFT) {
-                isShiftPressed = false;
-            }
-        }, false);
-
-    };
-
     var tcoMatcher = /^http(?:s)?:\/\/t\.co\/[0-9A-Za-z]+$/i;
     var expandAllUrl = function () {
         Array.prototype.forEach.call(
@@ -287,7 +255,6 @@
     document.addEventListener("DOMContentLoaded", function () {
         globalDialog = document.getElementById("global-tweet-dialog");
         retweetDialog = document.getElementById("retweet-tweet-dialog");
-        HotKey();
         replaceCancelButton();
         addPublicBtn();
     }, false);
