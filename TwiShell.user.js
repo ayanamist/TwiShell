@@ -4,8 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.7
-// @grant none
+// @version 3.8
 // @run-at document-start
 // ==/UserScript==
 
@@ -13,7 +12,7 @@
 (function (window) {
     'use strict';
     var document = window.document;
-
+    
     var ELEMENT_NODE = 1,
         TEXT_NODE = 3;
 
@@ -174,89 +173,10 @@
         );
     };
 
-    var publicBtnHtml = "<a class=\"btn user-tl-public-btn inline-content-header-btn js-user-tl-public\">Public</a>";
-    var addPublicBtn = function () {
-        var timeline = document.getElementById("timeline");
-        if (!timeline) {
-            return;
-        }
-        var publicBtn = timeline.querySelector(".js-user-tl-public");
-        if (publicBtn) {
-            return;
-        }
-        var div = document.createElement("div");
-        div.innerHTML = publicBtnHtml;
-        publicBtn = div.childNodes[0];
-
-        var pathname = document.location.pathname.toLowerCase();
-        if (/\/lists$/.test(pathname) ||
-            pathname.indexOf("/following") >= 0 ||
-            pathname.indexOf("/followers") >= 0 ||
-            pathname.indexOf("/members") >= 0 ||
-            pathname.indexOf("/subscribers") >= 0 ||
-            pathname.indexOf("/memberships") >= 0 ||
-            pathname.indexOf("/settings") >= 0) {
-            addClass(timeline, "not-timeline");
-        }
-        else {
-            removeClass(timeline, "not-timeline");
-        }
-
-        var headerInner = timeline.querySelector(".header-inner");
-        var searchHeader = headerInner.querySelector(".search-header");
-        if (searchHeader) {
-            searchHeader.insertBefore(publicBtn, searchHeader.querySelector(".search-title"));
-        }
-        else {
-            headerInner.appendChild(publicBtn);
-        }
-        var streamContainer = document.getElementById("stream-items-id");
-        publicBtn.addEventListener("click", function () {
-            toggleClass(publicBtn, "active");
-            toggleClass(streamContainer, "public-stream-items");
-            willWantsMoreItems();
-        });
-    };
-
-    var willWantsMoreItems = function () {
-        var streamContainer = document.getElementById("stream-items-id");
-        if (!streamContainer || !(hasClass(streamContainer, "public-stream-items"))) {
-            return;
-        }
-        var streamItems = streamContainer.childNodes;
-        var streamItemsLength = streamItems.length;
-        var last20Items = Array.prototype.slice.call(streamItems, Math.max(0, streamItemsLength - 20));
-        // if the last 20 items are all not public, infinite scroll of twitter will be broken
-        // so we should invoke loading manually to fix the problem
-        if (last20Items.every(function (item) {
-            return hasClass(item, "not-public-stream-item");
-        }) || streamContainer.querySelectorAll(".stream-item:not(.not-public-stream-item)").length < 20) {
-            wantsMoreTimelineItems();
-        }
-    };
-
-    var isPublicMap = Object.create(null);
-    var addNotPublicClass = function () {
-        Array.prototype.forEach.call(document.querySelectorAll(".original-tweet"), function (originalTweet) {
-            var itemId = originalTweet.getAttribute("data-item-id");
-            if (!(isPublicMap[itemId])) {
-                isPublicMap[itemId] = true;
-                if (originalTweet.getAttribute("data-is-reply-to") === "true" ||
-                    originalTweet.querySelector(".tweet-text").textContent.trim()[0] === "@") {
-                    addClass(originalTweet.parentNode, "not-public-stream-item");
-                }
-            }
-        });
-        willWantsMoreItems();
-    };
-
-    window.addEventListener("popstate", addPublicBtn, false);
-
     document.addEventListener("DOMContentLoaded", function () {
         globalDialog = document.getElementById("global-tweet-dialog");
         retweetDialog = document.getElementById("retweet-tweet-dialog");
         replaceCancelButton();
-        addPublicBtn();
     }, false);
 
     var styles = [
@@ -265,11 +185,6 @@
         ".content-main, .profile-page-header {float: left !important;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
-        ".inline-content-header-btn {float: right; margin-top: -24px;}",
-        ".search-header .search-title {width: 386px;}",
-        ".search-header .inline-content-header-btn {padding: 5px 10px; margin: -5px 4px 0 0;}",
-        ".public-stream-items .not-public-stream-item {display: none;}",
-        ".not-timeline .user-tl-public-btn {display: none;}",
         "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
         "li.stream-item:not(.open) .stream-item-footer:before, li.stream-item:not(.open) .stream-item-footer:after {display: none;}",
         "li.stream-item:not(.open) .has-cards .js-media-container {max-height: 0; overflow-y: hidden; padding: 0; margin: 0; border: 0;}",
@@ -290,15 +205,11 @@
 
     var throttledExpandUrl = throttle(expandAllUrl, 100);
     var throttledAttachProtectedTweet = throttle(attachProtectedTweet, 100);
-    var throttledAddPublicBtn = throttle(addPublicBtn, 100);
-    var throttledAddNotPublicClass = throttle(addNotPublicClass, 100);
     new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             if (mutation.addedNodes) {
                 throttledExpandUrl();
                 throttledAttachProtectedTweet();
-                throttledAddPublicBtn();
-                throttledAddNotPublicClass();
             }
         });
     }).observe(document, {
