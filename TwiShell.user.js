@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.8
+// @version 3.9
 // @run-at document-start
 // ==/UserScript==
 
@@ -183,6 +183,7 @@
         "@media screen {",
         ".cannot-retweet{display: inline !important;}", // rt for protected tweet
         ".content-main, .profile-page-header {float: left !important;}",
+        "body.three-col .wrapper {width: 900px !important;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
         "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
