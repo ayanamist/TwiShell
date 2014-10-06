@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.11
+// @version 3.12
 // @run-at document-start
 // ==/UserScript==
 
@@ -86,8 +86,8 @@
             },
             []
         ).join("");
-        var screenName = tweetNode.querySelector(".stream-item-header .username").textContent.trim();
-        return "RT " + screenName + ": " + originalTweetText.split("\n").map(function (s) {
+        var screenName = tweetNode.getAttribute("data-screen-name");
+        return "RT @" + screenName + ": " + originalTweetText.split("\n").map(function (s) {
             return "<div>" + s + "</div>";
         }).join("");
     };
