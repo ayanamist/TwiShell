@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.9
+// @version 3.11
 // @run-at document-start
 // ==/UserScript==
 
@@ -70,7 +70,7 @@
 
     var getOriginalTweetText = function (tweetNode) {
         var originalTweetText = Array.prototype.reduce.call(
-            tweetNode.querySelector("div.content p.js-tweet-text").childNodes,
+            tweetNode.querySelector(".js-tweet-text").childNodes,
             function (acc, childNode) {
                 var text;
                 if (childNode.nodeType === TEXT_NODE) {
@@ -86,14 +86,14 @@
             },
             []
         ).join("");
-        var screenName = tweetNode.querySelector("div.stream-item-header span.username").textContent.trim();
+        var screenName = tweetNode.querySelector(".stream-item-header .username").textContent.trim();
         return "RT " + screenName + ": " + originalTweetText.split("\n").map(function (s) {
             return "<div>" + s + "</div>";
         }).join("");
     };
 
     var hideRetweetDialog = function () {
-        click(document.querySelector("#retweet-tweet-dialog button.modal-close"));
+        click(document.querySelector("#retweet-tweet-dialog .modal-close"));
     };
 
     var showGlobalTweetDialog = function () {
@@ -114,7 +114,7 @@
     };
 
     var fillInTweetBox = function (text) {
-        var tweetBox = globalDialog.querySelector("div.tweet-box"),
+        var tweetBox = globalDialog.querySelector(".tweet-box"),
             range = document.createRange(),
             selection = window.getSelection();
 
@@ -131,7 +131,7 @@
         if (!retweetDialog) { // sometimes it will become null
             return;
         }
-        var btnCancel = retweetDialog.querySelector("button.cancel-action");
+        var btnCancel = retweetDialog.querySelector(".cancel-action");
         addClass(btnCancel, "rt-action");
         removeClass(btnCancel, "cancel-action");
         btnCancel.innerHTML = "RT";
@@ -184,6 +184,7 @@
         ".cannot-retweet{display: inline !important;}", // rt for protected tweet
         ".content-main, .profile-page-header {float: left !important;}",
         "body.three-col .wrapper {width: 900px !important;}",
+        "body.three-col .content-main {min-height: 700px;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
         "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
