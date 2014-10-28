@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.12
+// @version 3.13
 // @run-at document-start
 // ==/UserScript==
 
@@ -12,7 +12,7 @@
 (function (window) {
     'use strict';
     var document = window.document;
-    
+
     var ELEMENT_NODE = 1,
         TEXT_NODE = 3;
 
@@ -88,8 +88,8 @@
         ).join("");
         var screenName = tweetNode.getAttribute("data-screen-name");
         return "RT @" + screenName + ": " + originalTweetText.split("\n").map(function (s) {
-            return "<div>" + s + "</div>";
-        }).join("");
+                return "<div>" + s + "</div>";
+            }).join("");
     };
 
     var hideRetweetDialog = function () {
@@ -146,7 +146,11 @@
             var itemId = protectedTweet.getAttribute("data-item-id");
             if (!(isAttachedMap[itemId])) {
                 isAttachedMap[itemId] = true;
-                protectedTweet.querySelector(".retweet.cannot-retweet").addEventListener("click", function (evt) {
+                var rtBtn = protectedTweet.querySelector(".js-toggleRt button");
+                rtBtn.removeAttribute("disabled");
+                removeClass(rtBtn, "is-disabled");
+                removeClass(rtBtn, "js-disableTweetAction");
+                rtBtn.addEventListener("click", function (evt) {
                     if (evt.button == 2) { // Ignore right-clicks
                         return;
                     }
@@ -181,17 +185,11 @@
 
     var styles = [
         "@media screen {",
-        ".cannot-retweet{display: inline !important;}", // rt for protected tweet
         ".content-main, .profile-page-header {float: left !important;}",
         "body.three-col .wrapper {width: 900px !important;}",
         "body.three-col .content-main {min-height: 700px;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
-        "li.stream-item .has-cards .js-media-container {max-height: 100%; transition-property: all; transition-duration: 0.2s;}",
-        "li.stream-item:not(.open) .stream-item-footer:before, li.stream-item:not(.open) .stream-item-footer:after {display: none;}",
-        "li.stream-item:not(.open) .has-cards .js-media-container {max-height: 0; overflow-y: hidden; padding: 0; margin: 0; border: 0;}",
-        "li.stream-item:not(.open) .has-cards .expanded-content {display: none;}",
-        "li.stream-item:not(.open) .has-cards .bottom-tweet-actions {margin-top: 0;}",
         "}"
     ].join("");
 
@@ -215,7 +213,7 @@
             }
         });
     }).observe(document, {
-        childList: true,
-        subtree: true
-    });
+            childList: true,
+            subtree: true
+        });
 })(this);
