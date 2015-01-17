@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.13
+// @version 3.14
 // @run-at document-start
 // ==/UserScript==
 
@@ -177,6 +177,12 @@
         );
     };
 
+    var removeLangAttr = function () {
+        Array.prototype.forEach.call(document.querySelectorAll("p.tweet-text[lang]"), function (el) {
+            el.removeAttribute("lang");
+        });
+    };
+
     document.addEventListener("DOMContentLoaded", function () {
         globalDialog = document.getElementById("global-tweet-dialog");
         retweetDialog = document.getElementById("retweet-tweet-dialog");
@@ -205,11 +211,13 @@
 
     var throttledExpandUrl = throttle(expandAllUrl, 100);
     var throttledAttachProtectedTweet = throttle(attachProtectedTweet, 100);
+    var throttledRemoveLangAttr = throttle(removeLangAttr, 100);
     new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             if (mutation.addedNodes) {
                 throttledExpandUrl();
                 throttledAttachProtectedTweet();
+                throttledRemoveLangAttr();
             }
         });
     }).observe(document, {
