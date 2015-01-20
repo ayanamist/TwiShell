@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.14
+// @version 3.15
 // @run-at document-start
 // ==/UserScript==
 
@@ -214,11 +214,9 @@
     var throttledRemoveLangAttr = throttle(removeLangAttr, 100);
     new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
-            if (mutation.addedNodes) {
-                throttledExpandUrl();
-                throttledAttachProtectedTweet();
-                throttledRemoveLangAttr();
-            }
+            throttledExpandUrl();
+            throttledAttachProtectedTweet();
+            throttledRemoveLangAttr();
         });
     }).observe(document, {
             childList: true,
