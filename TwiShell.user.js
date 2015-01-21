@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.15
+// @version 3.16
 // @run-at document-start
 // ==/UserScript==
 
@@ -178,7 +178,7 @@
     };
 
     var removeLangAttr = function () {
-        Array.prototype.forEach.call(document.querySelectorAll("p.tweet-text[lang]"), function (el) {
+        Array.prototype.forEach.call(document.querySelectorAll("p.js-tweet-text[lang]"), function (el) {
             el.removeAttribute("lang");
         });
     };
