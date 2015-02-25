@@ -4,7 +4,7 @@
 // @description Enhance Twitter Web with lots of features.
 // @match http://twitter.com/*
 // @match https://twitter.com/*
-// @version 3.16
+// @version 3.17
 // @run-at document-start
 // ==/UserScript==
 
@@ -194,6 +194,7 @@
         ".content-main, .profile-page-header {float: left !important;}",
         "body.three-col .wrapper {width: 900px !important;}",
         "body.three-col .content-main {min-height: 700px;}",
+        "body.three-col .permalink-container {width: 900px !important;}",
         ".dashboard {float: right !important;}",
         "#suggested-users {clear: none !important;}",
         "}"
